@@ -2,6 +2,7 @@ import { create } from 'zustand'
 
 export const useCartStore = create((set, get) => ({
   items: {},
+  paymentMode: '',
   selectedWorkerId: '',
   selectedWorkerName: '',
   setWorker: (worker) =>
@@ -9,6 +10,7 @@ export const useCartStore = create((set, get) => ({
       selectedWorkerId: worker?.id ?? '',
       selectedWorkerName: worker?.name ?? '',
     }),
+  setPaymentMode: (paymentMode) => set({ paymentMode }),
   incrementItem: (item) =>
     set((state) => {
       const existingItem = state.items[item.id]
@@ -46,7 +48,7 @@ export const useCartStore = create((set, get) => ({
 
       return { items: nextItems }
     }),
-  clearCart: () => set({ items: {} }),
+  clearCart: () => set({ items: {}, paymentMode: '' }),
   getItemQuantity: (itemId) => get().items[itemId]?.quantity ?? 0,
   getCartItems: () => Object.values(get().items),
   getTotalItems: () =>
