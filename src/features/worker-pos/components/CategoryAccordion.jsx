@@ -12,15 +12,19 @@ export function CategoryAccordion({
   searchMatches,
   toggleCategory,
 }) {
-  const availableItems =
-    category.menu_items?.filter((item) => item.is_available) ?? []
+  // All items (including inactive ones) for display, but only active ones for interaction.
+  const allItems = category.menu_items ?? []
+  const activeItems = allItems.filter((item) => item.is_available)
   const visibleItems = normalizedSearchQuery
-    ? availableItems.filter((item) => searchMatches.itemIds.has(item.id))
-    : availableItems
+    ? allItems.filter((item) => searchMatches.itemIds.has(item.id))
+    : allItems
 
   if (normalizedSearchQuery && visibleItems.length === 0) {
     return null
   }
+
+  // Show category even if no active items, but indicate count of available items.
+  const activeItemsCount = activeItems.length
 
   return (
     <section className="rounded-md border border-brew-line bg-white">
@@ -34,7 +38,7 @@ export function CategoryAccordion({
           <span className="text-sm font-semibold text-brew-muted">
             {normalizedSearchQuery
               ? `${visibleItems.length} matches`
-              : `${availableItems.length} items`}
+              : `${activeItemsCount} items available`}
           </span>
         </span>
         <span className="grid size-11 place-items-center rounded-md bg-brew-cream text-brew-muted">
