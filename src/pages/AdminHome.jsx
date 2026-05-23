@@ -18,6 +18,7 @@ import { WorkersPanel } from '../features/admin/components/WorkersPanel'
 import { OrdersPanel } from '../features/admin/components/OrdersPanel'
 import { CategoryManagementPanel } from '../features/admin/components/CategoryManagementPanel'
 import { MenuItemManagementPanel } from '../features/admin/components/MenuItemManagementPanel'
+import { ReportPanel } from '../features/admin/components/ReportPanel'
 
 export default function AdminHome() {
   // Tab state drives which admin panel is visible.
@@ -317,6 +318,8 @@ export default function AdminHome() {
             handleDeleteMenuItem={handleDeleteMenuItem}
           />
         )}
+
+        {tab === 'reports' && <ReportPanel />}
       </section>
     </main>
   )
