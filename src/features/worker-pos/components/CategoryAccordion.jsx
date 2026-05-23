@@ -1,0 +1,66 @@
+import { ChevronDown, ChevronUp } from 'lucide-react'
+import { ItemQuantityRow } from './ItemQuantityRow'
+
+export function CategoryAccordion({
+  category,
+  decrementItem,
+  getItemQuantity,
+  incrementItem,
+  itemRefs,
+  normalizedSearchQuery,
+  openCategoryIds,
+  searchMatches,
+  toggleCategory,
+}) {
+  const availableItems =
+    category.menu_items?.filter((item) => item.is_available) ?? []
+  const visibleItems = normalizedSearchQuery
+    ? availableItems.filter((item) => searchMatches.itemIds.has(item.id))
+    : availableItems
+
+  if (normalizedSearchQuery && visibleItems.length === 0) {
+    return null
+  }
+
+  return (
+    <section className="rounded-md border border-brew-line bg-white">
+      <button
+        className="flex min-h-16 w-full items-center justify-between gap-3 border-b border-brew-line px-4 py-3 text-left"
+        onClick={() => toggleCategory(category.id)}
+        type="button"
+      >
+        <span>
+          <span className="block text-xl font-bold">{category.name}</span>
+          <span className="text-sm font-semibold text-brew-muted">
+            {normalizedSearchQuery
+              ? `${visibleItems.length} matches`
+              : `${availableItems.length} items`}
+          </span>
+        </span>
+        <span className="grid size-11 place-items-center rounded-md bg-brew-cream text-brew-muted">
+          {openCategoryIds.has(category.id) ? (
+            <ChevronUp aria-hidden="true" />
+          ) : (
+            <ChevronDown aria-hidden="true" />
+          )}
+        </span>
+      </button>
+
+      {openCategoryIds.has(category.id) && (
+        <div className="grid gap-2 p-3">
+          {visibleItems.map((item) => (
+            <ItemQuantityRow
+              decrementItem={decrementItem}
+              incrementItem={incrementItem}
+              isSearchMatch={searchMatches.itemIds.has(item.id)}
+              item={item}
+              itemRefs={itemRefs}
+              key={item.id}
+              quantity={getItemQuantity(item.id)}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
