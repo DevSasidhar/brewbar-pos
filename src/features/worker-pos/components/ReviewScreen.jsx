@@ -1,15 +1,55 @@
 import { ArrowLeft, Banknote, CreditCard, ReceiptText } from 'lucide-react'
 import { formatPrice } from '../utils/formatPrice'
+import { useState } from 'react'
+import { submitOrder } from '../../../services/workerService'
+import { useCartStore } from '../../../store/cartStore'
 
 export function ReviewScreen({
   cartItems,
   paymentMode,
+  selectedWorkerId,
   selectedWorkerName,
   setPaymentMode,
   setScreen,
   totalAmount,
   totalItems,
+  onOrderSuccess,
 }) {
+  const [loading, setLoading] = useState(false)
+  const clearCart = useCartStore((s) => s.clearCart)
+
+  async function handleSubmit() {
+    if (!paymentMode || cartItems.length === 0 || !selectedWorkerId) return
+
+    setLoading(true)
+
+    try {
+      const payload = {
+        workerId: selectedWorkerId,
+        items: cartItems,
+        paymentMode,
+        totalAmount,
+        totalItems,
+      }
+
+      const result = await submitOrder(payload)
+
+      const orderId = result?.data?.id
+
+      clearCart()
+      if (onOrderSuccess) {
+        onOrderSuccess(orderId)
+      } else {
+        setScreen('menu')
+        window.alert(`Order submitted ${orderId ? ` — id: ${orderId}` : ''}`)
+      }
+    } catch (err) {
+      console.error(err)
+      window.alert('Failed to submit order. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
   return (
     <main className="min-h-screen bg-brew-cream pb-28 text-brew-ink">
       <section className="mx-auto flex min-h-screen w-full max-w-4xl flex-col px-4 py-4 sm:px-6">
@@ -119,11 +159,11 @@ export function ReviewScreen({
           </button>
           <button
             className="min-h-12 rounded-md bg-brew-coffee px-4 text-base font-black text-white disabled:bg-slate-300"
-            disabled={!paymentMode}
-            onClick={() => window.alert('Order submission will be added next.')}
+            disabled={!paymentMode || loading}
+            onClick={handleSubmit}
             type="button"
           >
-            Submit Order
+            {loading ? 'Submitting…' : 'Submit Order'}
           </button>
         </div>
       </footer>

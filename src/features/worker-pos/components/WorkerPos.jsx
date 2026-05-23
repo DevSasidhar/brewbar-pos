@@ -3,10 +3,12 @@ import { useCartStore } from '../../../store/cartStore'
 import { useMenuSearch } from '../hooks/useMenuSearch'
 import { useWorkerPosData } from '../hooks/useWorkerPosData'
 import { MenuScreen } from './MenuScreen'
+import { OrderSuccessScreen } from './OrderSuccessScreen'
 import { ReviewScreen } from './ReviewScreen'
 
 export function WorkerPos() {
   const [screen, setScreen] = useState('menu')
+  const [orderId, setOrderId] = useState('')
   const {
     categories,
     errorMessage,
@@ -67,12 +69,21 @@ export function WorkerPos() {
         cartItems={cartItems}
         paymentMode={paymentMode}
         selectedWorkerName={selectedWorkerName}
+        selectedWorkerId={selectedWorkerId}
         setPaymentMode={setPaymentMode}
         setScreen={setScreen}
         totalAmount={totalAmount}
         totalItems={totalItems}
+        onOrderSuccess={(id) => {
+          setOrderId(id)
+          setScreen('success')
+        }}
       />
     )
+  }
+
+  if (screen === 'success') {
+    return <OrderSuccessScreen orderId={orderId} setScreen={setScreen} />
   }
 
   return (
