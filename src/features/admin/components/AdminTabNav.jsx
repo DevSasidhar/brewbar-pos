@@ -7,6 +7,7 @@ export function AdminTabNav({ tab, setTab }) {
     { id: 'categories', label: 'Categories' },
     { id: 'menu', label: 'Menu Items' },
     { id: 'reports', label: 'Reports' },
+    { id: 'analytics', label: 'Analytics' },
   ]
 
   return (

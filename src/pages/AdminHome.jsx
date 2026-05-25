@@ -19,6 +19,7 @@ import { OrdersPanel } from '../features/admin/components/OrdersPanel'
 import { CategoryManagementPanel } from '../features/admin/components/CategoryManagementPanel'
 import { MenuItemManagementPanel } from '../features/admin/components/MenuItemManagementPanel'
 import { ReportPanel } from '../features/admin/components/ReportPanel'
+import { AnalyticsDashboard } from '../features/admin/analytics/components/AnalyticsDashboard'
 
 export default function AdminHome() {
   // Tab state drives which admin panel is visible.
@@ -320,6 +321,7 @@ export default function AdminHome() {
         )}
 
         {tab === 'reports' && <ReportPanel />}
+        {tab === 'analytics' && <AnalyticsDashboard />}
       </section>
     </main>
   )

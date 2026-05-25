@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.1",
+    "highcharts": "^12.6.0",
+    "highcharts-react-official": "^3.2.3",
     "lucide-react": "^1.16.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
