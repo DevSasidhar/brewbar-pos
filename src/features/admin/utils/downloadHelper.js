@@ -3,6 +3,14 @@
  * Utility functions for file downloads and format conversions.
  */
 
+export function formatLocalDate(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+
+  return `${year}-${month}-${day}`
+}
+
 /**
  * Generate a filename with optional date.
  * Format: reportType-YYYY-MM-DD.xlsx
@@ -12,7 +20,7 @@
  * @returns {string} formatted filename
  */
 export function generateFilename(reportType, date) {
-  const dateStr = date.toISOString().split('T')[0] // YYYY-MM-DD
+  const dateStr = formatLocalDate(date)
   const reportLabel = reportType.charAt(0).toUpperCase() + reportType.slice(1)
   return `${reportLabel}-Report-${dateStr}.xlsx`
 }
@@ -26,7 +34,7 @@ export function generateFilename(reportType, date) {
  * @returns {string} report title
  */
 export function generateReportTitle(reportType, date) {
-  const dateStr = date.toISOString().split('T')[0]
+  const dateStr = formatLocalDate(date)
   const dayName = date.toLocaleDateString('en-US', { weekday: 'long' })
 
   switch (reportType) {
@@ -38,7 +46,7 @@ export function generateReportTitle(reportType, date) {
       const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
       const weekStart = new Date(date)
       weekStart.setDate(date.getDate() - daysFromMonday)
-      const weekStartStr = weekStart.toISOString().split('T')[0]
+      const weekStartStr = formatLocalDate(weekStart)
       return `Weekly Report - Week of ${weekStartStr}`
     }
 
@@ -53,12 +61,12 @@ export function generateReportTitle(reportType, date) {
 }
 
 /**
- * Convert a date to ISO date string (YYYY-MM-DD).
+ * Convert a date to YYYY-MM-DD using the browser's local timezone.
  * @param {Date} date
  * @returns {string}
  */
 export function toISODateString(date) {
-  return date.toISOString().split('T')[0]
+  return formatLocalDate(date)
 }
 
 /**
@@ -106,17 +114,17 @@ export function getReportPeriod(reportType, date) {
 /**
  * Format currency for display.
  * @param {number} amount
- * @returns {string} formatted as $X.XX
+ * @returns {string} formatted as ₹X.XX
  */
 export function formatCurrency(amount) {
-  return `$${(Math.round(amount * 100) / 100).toFixed(2)}`
+  return `₹${(Math.round(amount * 100) / 100).toFixed(2)}`
 }
 
 /**
  * Parse currency string back to number.
- * @param {string} str - e.g., "$123.45"
+ * @param {string} str - e.g., "₹123.45"
  * @returns {number}
  */
 export function parseCurrency(str) {
-  return parseFloat(str.replace('$', ''))
+  return Number(String(str).replace(/[₹,\s]/g, ''))
 }

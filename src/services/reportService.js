@@ -1,4 +1,11 @@
-import { hasSupabaseConfig, supabase } from '../lib/supabase'
+import { hasSupabaseConfig, supabase } from '../lib/supabase.js'
+
+export function getSupabaseDateRange(startDate, endDate) {
+  return {
+    startIso: startDate.toISOString(),
+    endIso: endDate.toISOString(),
+  }
+}
 
 /**
  * Fetch sales data for a given date range.
@@ -11,15 +18,11 @@ import { hasSupabaseConfig, supabase } from '../lib/supabase'
  */
 export async function getSalesData({ startDate, endDate }) {
   if (!hasSupabaseConfig) {
-    // Return mock data for offline/demo mode
     return getMockSalesData({ startDate, endDate })
   }
 
-  // Format dates for Supabase query (YYYY-MM-DD)
-  const startDateStr = startDate.toISOString().split('T')[0]
-  const endDateStr = endDate.toISOString().split('T')[0]
+  const { startIso, endIso } = getSupabaseDateRange(startDate, endDate)
 
-  // Query: orders -> order_items -> menu_items -> categories
   const { data, error } = await supabase
     .from('orders')
     .select(
@@ -41,8 +44,8 @@ export async function getSalesData({ startDate, endDate }) {
       )
     `
     )
-    .gte('created_at', `${startDateStr}T00:00:00`)
-    .lte('created_at', `${endDateStr}T23:59:59`)
+    .gte('created_at', startIso)
+    .lte('created_at', endIso)
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -50,7 +53,6 @@ export async function getSalesData({ startDate, endDate }) {
     throw error
   }
 
-  // Flatten the nested structure: one row per order_item
   const flattenedData = []
 
   if (data && Array.isArray(data)) {
@@ -58,7 +60,6 @@ export async function getSalesData({ startDate, endDate }) {
       const orderItems = order.order_items || []
 
       if (orderItems.length === 0) {
-        // Handle orders with no items (edge case)
         flattenedData.push({
           order_id: order.id,
           created_at: order.created_at,
@@ -71,7 +72,6 @@ export async function getSalesData({ startDate, endDate }) {
           subtotal: 0,
         })
       } else {
-        // Create one row per item in the order
         orderItems.forEach((item) => {
           flattenedData.push({
             order_id: order.id,
@@ -114,7 +114,7 @@ export async function getDailySalesData(date) {
  */
 export async function getWeeklySalesData(date) {
   const dayOfWeek = date.getDay()
-  const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1 // Mon = 0, Sun = 6
+  const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
   const startDate = new Date(date)
   startDate.setDate(date.getDate() - daysFromMonday)
   startDate.setHours(0, 0, 0, 0)
@@ -133,10 +133,10 @@ export async function getWeeklySalesData(date) {
  * @returns {Promise<Array>}
  */
 export async function getMonthlySalesData(year, month) {
-  const startDate = new Date(year, month - 1, 1) // month is 0-indexed
+  const startDate = new Date(year, month - 1, 1)
   startDate.setHours(0, 0, 0, 0)
 
-  const endDate = new Date(year, month, 0) // last day of the month
+  const endDate = new Date(year, month, 0)
   endDate.setHours(23, 59, 59, 999)
 
   return getSalesData({ startDate, endDate })
@@ -164,7 +164,7 @@ function getMockSalesData({ startDate, endDate }) {
   let orderId = 1001
 
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-    const numOrders = Math.floor(Math.random() * 5) + 3 // 3-7 orders per day
+    const numOrders = Math.floor(Math.random() * 5) + 3
     for (let i = 0; i < numOrders; i++) {
       const numItems = Math.floor(Math.random() * 3) + 1
       for (let j = 0; j < numItems; j++) {

@@ -4,12 +4,11 @@ import { useState } from 'react'
 import { Download, Calendar } from 'lucide-react'
 import { getDailySalesData, getWeeklySalesData, getMonthlySalesData } from '../../../services/reportService'
 import { generateAndDownloadReport } from '../utils/excelGenerator'
-import { generateFilename, generateReportTitle, getReportPeriod } from '../utils/downloadHelper'
+import { formatLocalDate, generateFilename, generateReportTitle } from '../utils/downloadHelper'
 
 export function ReportPanel() {
-  // Report type: 'daily', 'weekly', or 'monthly'
   const [reportType, setReportType] = useState('daily')
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
+  const [selectedDate, setSelectedDate] = useState(() => formatLocalDate(new Date()))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')

@@ -1,8 +1,23 @@
+import { formatCurrency, parseCurrency } from './downloadHelper.js'
+
 /**
  * reportTransform.js
  * Transforms flattened sales data and adds computed columns.
  * Prepares data for Excel export and analysis.
  */
+
+function normalizePaymentMode(value) {
+  return String(value || '').trim().toUpperCase()
+}
+
+function getLocalDateString(timestamp) {
+  const date = new Date(timestamp)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+
+  return `${year}-${month}-${day}`
+}
 
 /**
  * Add computed columns to raw sales data.
@@ -20,22 +35,17 @@ export function enrichSalesData(rawData) {
   return rawData.map((row) => {
     const timestamp = new Date(row.created_at)
 
-    // Date and Time
-    const date = timestamp.toISOString().split('T')[0]
-    const time = timestamp.toTimeString().slice(0, 5) // HH:MM
-
-    // Day name
+    const date = getLocalDateString(row.created_at)
+    const time = timestamp.toTimeString().slice(0, 5)
     const dayName = timestamp.toLocaleDateString('en-US', { weekday: 'long' })
-
-    // Hour bucket (e.g., "9-10" for 9:00-9:59)
     const hour = timestamp.getHours()
     const hourBucket = `${hour}-${hour + 1}`
-
-    // Week number (ISO 8601)
     const weekNumber = getISOWeekNumber(timestamp)
-
-    // Month
     const month = timestamp.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+
+    const unitPrice = row.item_price ?? row.unit_price ?? 0
+    const quantity = row.quantity ?? 0
+    const subtotal = row.subtotal ?? quantity * unitPrice
 
     return {
       ...row,
@@ -45,6 +55,9 @@ export function enrichSalesData(rawData) {
       hour_bucket: hourBucket,
       week_number: weekNumber,
       month,
+      item_price: unitPrice,
+      quantity,
+      subtotal,
     }
   })
 }
@@ -73,23 +86,50 @@ function getISOWeekNumber(date) {
 export function prepareRawSalesSheet(rawData) {
   const enriched = enrichSalesData(rawData)
 
-  return enriched.map((row) => ({
+  const rows = enriched.map((row) => ({
     'Order ID': row.order_id,
-    'Timestamp': row.created_at,
-    'Date': row.date,
-    'Time': row.time,
+    Timestamp: row.created_at,
+    Date: row.date,
+    Time: row.time,
     'Day Name': row.day_name,
     'Worker Name': row.worker_name,
-    'Category': row.category_name,
+    Category: row.category_name,
     'Item Name': row.item_name,
-    'Quantity': row.quantity,
-    'Unit Price': row.unit_price,
-    'Subtotal': row.subtotal,
+    Quantity: row.quantity,
+    'Unit Price': row.item_price,
+    Subtotal: row.subtotal,
     'Payment Mode': row.payment_mode,
     'Hour Bucket': row.hour_bucket,
     'Week Number': row.week_number,
-    'Month': row.month,
+    Month: row.month,
   }))
+
+  if (rows.length === 0) {
+    return rows
+  }
+
+  const totalSubtotal = enriched.reduce((sum, row) => sum + row.subtotal, 0)
+
+  return [
+    ...rows,
+    {
+      'Order ID': 'Grand Total',
+      Timestamp: '',
+      Date: '',
+      Time: '',
+      'Day Name': '',
+      'Worker Name': '',
+      Category: '',
+      'Item Name': '',
+      Quantity: '',
+      'Unit Price': '',
+      Subtotal: totalSubtotal,
+      'Payment Mode': '',
+      'Hour Bucket': '',
+      'Week Number': '',
+      Month: '',
+    },
+  ]
 }
 
 /**
@@ -107,17 +147,16 @@ export function calculateSummaryStats(rawData) {
   const uniqueOrders = new Set(enriched.map((row) => row.order_id)).size
 
   const cashRevenue = enriched
-    .filter((row) => row.payment_mode === 'cash')
+    .filter((row) => normalizePaymentMode(row.payment_mode) === 'CASH')
     .reduce((sum, row) => sum + row.subtotal, 0)
 
   const upiRevenue = enriched
-    .filter((row) => row.payment_mode === 'upi')
+    .filter((row) => normalizePaymentMode(row.payment_mode) === 'UPI')
     .reduce((sum, row) => sum + row.subtotal, 0)
 
-  // Best selling item
   const itemSales = {}
   enriched.forEach((row) => {
-    const key = row.item_name
+    const key = row.item_name || 'Unknown'
     if (!itemSales[key]) {
       itemSales[key] = { quantity: 0, revenue: 0 }
     }
@@ -141,7 +180,7 @@ export function calculateSummaryStats(rawData) {
     bestSellingItem: bestItem?.name || 'N/A',
     bestItemQuantity: bestItem?.quantity || 0,
     bestItemRevenue: bestItem?.revenue ? Math.round(bestItem.revenue * 100) / 100 : 0,
-    averageOrderValue: Math.round((totalRevenue / uniqueOrders) * 100) / 100,
+    averageOrderValue: uniqueOrders ? Math.round((totalRevenue / uniqueOrders) * 100) / 100 : 0,
   }
 }
 
@@ -154,15 +193,15 @@ export function prepareSummarySheet(rawData) {
   const stats = calculateSummaryStats(rawData)
 
   return [
-    { Metric: 'Total Revenue', Value: `$${stats.totalRevenue.toFixed(2)}` },
+    { Metric: 'Total Revenue', Value: formatCurrency(stats.totalRevenue) },
     { Metric: 'Total Orders', Value: stats.totalOrders },
     { Metric: 'Total Items Sold', Value: stats.totalQuantity },
-    { Metric: 'Cash Revenue', Value: `$${stats.cashRevenue.toFixed(2)}` },
-    { Metric: 'UPI Revenue', Value: `$${stats.upiRevenue.toFixed(2)}` },
-    { Metric: 'Average Order Value', Value: `$${stats.averageOrderValue.toFixed(2)}` },
+    { Metric: 'Cash Revenue', Value: formatCurrency(stats.cashRevenue) },
+    { Metric: 'UPI Revenue', Value: formatCurrency(stats.upiRevenue) },
+    { Metric: 'Average Order Value', Value: formatCurrency(stats.averageOrderValue) },
     { Metric: 'Best Selling Item', Value: stats.bestSellingItem },
     { Metric: 'Best Item Quantity', Value: stats.bestItemQuantity },
-    { Metric: 'Best Item Revenue', Value: `$${stats.bestItemRevenue.toFixed(2)}` },
+    { Metric: 'Best Item Revenue', Value: formatCurrency(stats.bestItemRevenue) },
   ]
 }
 
@@ -192,12 +231,11 @@ export function prepareCategorySummarySheet(rawData) {
     .map(([category, stats]) => ({
       Category: category,
       'Quantity Sold': stats.quantity,
-      'Revenue': `$${(Math.round(stats.revenue * 100) / 100).toFixed(2)}`,
+      Revenue: formatCurrency(stats.revenue),
     }))
     .sort((a, b) => {
-      // Sort by revenue descending
-      const revA = parseFloat(a.Revenue.replace('$', ''))
-      const revB = parseFloat(b.Revenue.replace('$', ''))
+      const revA = parseCurrency(a.Revenue)
+      const revB = parseCurrency(b.Revenue)
       return revB - revA
     })
 }
@@ -213,7 +251,7 @@ export function prepareItemSummarySheet(rawData) {
   const itemStats = {}
 
   enriched.forEach((row) => {
-    const key = `${row.item_name} (${row.category_name})`
+    const key = `${row.item_name || 'Unknown'} (${row.category_name || 'Unknown'})`
     if (!itemStats[key]) {
       itemStats[key] = {
         quantity: 0,
@@ -228,12 +266,11 @@ export function prepareItemSummarySheet(rawData) {
     .map(([item, stats]) => ({
       Item: item,
       'Quantity Sold': stats.quantity,
-      'Revenue': `$${(Math.round(stats.revenue * 100) / 100).toFixed(2)}`,
+      Revenue: formatCurrency(stats.revenue),
     }))
     .sort((a, b) => {
-      // Sort by revenue descending
-      const revA = parseFloat(a.Revenue.replace('$', ''))
-      const revB = parseFloat(b.Revenue.replace('$', ''))
+      const revA = parseCurrency(a.Revenue)
+      const revB = parseCurrency(b.Revenue)
       return revB - revA
     })
 }
