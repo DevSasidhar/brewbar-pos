@@ -7,7 +7,9 @@ export function OrdersPanel({ orders }) {
     <section className="grid gap-4">
       <div className="rounded-md border border-brew-line bg-white p-4">
         <h2 className="text-xl font-black">Recent orders</h2>
-        <p className="mt-2 text-sm text-brew-muted">View recent order totals and checkout details.</p>
+        <p className="mt-2 text-sm text-brew-muted">
+          Showing the latest 15 orders only to keep the admin view lightweight as data grows.
+        </p>
       </div>
       <div className="grid gap-3">
         {orders.length ? (

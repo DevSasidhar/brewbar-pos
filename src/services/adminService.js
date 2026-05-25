@@ -75,6 +75,7 @@ export async function getOrders() {
       `id, worker_id, payment_mode, total_amount, total_items, created_at, workers(id, name), order_items(id, item_name, item_price, quantity, subtotal)`,
     )
     .order('created_at', { ascending: false })
+    .limit(15)
 
   if (error) {
     throw error
